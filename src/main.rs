@@ -26,6 +26,18 @@ fn generate_gameboard(num_players: u32, num_territories_per_player: u32, num_dic
         territory_map.insert(cur_territory.id, cur_territory);
     }
 
+    assign_territories_to_players(&mut territory_map, num_players, num_territories_per_player);
+
+    assing_dice_to_territories(&mut territory_map, num_players, num_territories_per_player, num_dice_per_player);
+
+    println!("{:#?}", territory_map);
+
+    territory_map
+}
+
+fn assign_territories_to_players(territory_map: &mut HashMap<u32, Territory>, num_players: u32, num_territories_per_player: u32){
+    let max_territories = num_territories_per_player * num_players;
+
     let mut territory_ids: Vec<u32> = (0..max_territories).collect();
 
     let mut rng = thread_rng();
@@ -38,6 +50,11 @@ fn generate_gameboard(num_players: u32, num_territories_per_player: u32, num_dic
         found_terr.owner_id = cur_player_id;
         cur_player_id += 1;
     }
+}
+
+fn assing_dice_to_territories(territory_map: &mut HashMap<u32, Territory>, num_players:u32, num_territories_per_player: u32, num_dice_per_player: u32)
+{
+    let mut rng = thread_rng();
 
     for cur_player_id in 0..num_players {
         let mut assigned_dice: u32 = 0;
@@ -56,10 +73,6 @@ fn generate_gameboard(num_players: u32, num_territories_per_player: u32, num_dic
             assigned_dice += 1;
         }
     }
-
-    println!("{:#?}", territory_map);
-
-    territory_map
 }
 
 fn main() {
