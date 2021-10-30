@@ -10,29 +10,36 @@ struct Territory {
     owner_id: u32,
 }
 
-fn generate_gameboard(num_players: u32, num_territories_per_player: u32, num_dice_per_player: u32) -> HashMap<u32, Territory> {
-    
-    let max_territories = num_territories_per_player * num_players;
+struct Gameboard {
+    territory_map: HashMap<u32, Territory>,
+}
 
-    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+impl Gameboard {
+    fn new(num_players: u32, num_territories_per_player: u32, num_dice_per_player: u32) -> Gameboard {
+        let max_territories = num_territories_per_player * num_players;
 
-    for cur_id in 0..(max_territories) {
-        let cur_territory = Territory {
-            id: cur_id,
-            num_dice: 1,
-            owner_id: 0
-        };
+        let mut territory_map: HashMap<u32, Territory> = HashMap::new();
 
-        territory_map.insert(cur_territory.id, cur_territory);
+        for cur_id in 0..(max_territories) {
+            let cur_territory = Territory {
+                id: cur_id,
+                num_dice: 1,
+                owner_id: 0
+            };
+
+            territory_map.insert(cur_territory.id, cur_territory);
+        }
+
+        assign_territories_to_players(&mut territory_map, num_players, num_territories_per_player);
+
+        assign_dice_to_territories(&mut territory_map, num_players, num_territories_per_player, num_dice_per_player);
+
+        println!("{:#?}", territory_map);
+
+        Gameboard {
+            territory_map: territory_map,
+        }    
     }
-
-    assign_territories_to_players(&mut territory_map, num_players, num_territories_per_player);
-
-    assing_dice_to_territories(&mut territory_map, num_players, num_territories_per_player, num_dice_per_player);
-
-    println!("{:#?}", territory_map);
-
-    territory_map
 }
 
 fn assign_territories_to_players(territory_map: &mut HashMap<u32, Territory>, num_players: u32, num_territories_per_player: u32){
@@ -52,7 +59,7 @@ fn assign_territories_to_players(territory_map: &mut HashMap<u32, Territory>, nu
     }
 }
 
-fn assing_dice_to_territories(territory_map: &mut HashMap<u32, Territory>, num_players:u32, num_territories_per_player: u32, num_dice_per_player: u32)
+fn assign_dice_to_territories(territory_map: &mut HashMap<u32, Territory>, num_players:u32, num_territories_per_player: u32, num_dice_per_player: u32)
 {
     let mut rng = thread_rng();
 
@@ -87,6 +94,7 @@ fn main() {
     let num_territories_per_player: u32 = args[2].parse().expect("num player territories per player must be a positive integer");
     let num_dice_per_player: u32 = args[3].parse().expect("num dice per player must be a positive integer");
 
-    let all_territories: HashMap<u32, Territory> = generate_gameboard(num_players, num_territories_per_player, num_dice_per_player);
+    //let all_territories: HashMap<u32, Territory> = generate_gameboard(num_players, num_territories_per_player, num_dice_per_player);
+    let game_board: Gameboard = Gameboard::new(num_players, num_territories_per_player, num_dice_per_player);
     
 }
