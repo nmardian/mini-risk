@@ -19,7 +19,7 @@ fn generate_gameboard(num_players: u32, num_territories_per_player: u32, num_dic
     for cur_id in 0..(max_territories) {
         let cur_territory = Territory {
             id: cur_id,
-            num_dice: 0,
+            num_dice: 1,
             owner_id: 0
         };
 
@@ -34,29 +34,26 @@ fn generate_gameboard(num_players: u32, num_territories_per_player: u32, num_dic
     let mut cur_player_id: u32 = 0;
     for cur_territory in territory_ids {
         cur_player_id = cur_player_id % num_players;
-        let mut found_terr: &mut Territory = match territory_map.get_mut(&cur_territory) {
-            Some(territory) => territory,
-            None => panic!("Error: No territory with ID {}", cur_territory),
-        };
+        let mut found_terr: &mut Territory = territory_map.get_mut(&cur_territory).unwrap();
         found_terr.owner_id = cur_player_id;
         cur_player_id += 1;
     }
 
-    // this evenly distributes dice, need to make it random
     for cur_player_id in 0..num_players {
         let mut assigned_dice: u32 = 0;
-        while assigned_dice < num_dice_per_player {
-            for cur_territory_id in 0..max_territories {
-                let mut found_terr: &mut Territory = match territory_map.get_mut(&cur_territory_id) {
-                    Some(territory) => territory,
-                    None => panic!("Error: No territory with ID {}", cur_territory_id),
-                };
-                
-                if cur_player_id == found_terr.owner_id {
-                    found_terr.num_dice += 1;
-                    assigned_dice += 1;
-                }
+        let mut cur_players_territories: Vec<u32> = Vec::new();
+
+        for cur_terr in territory_map.values() {
+            if cur_terr.owner_id == cur_player_id {
+                cur_players_territories.push(cur_terr.id);
             }
+        }
+
+        while assigned_dice < (num_dice_per_player - num_territories_per_player) {
+            cur_players_territories.shuffle(&mut rng);
+            let mut found_terr: &mut Territory = territory_map.get_mut(&cur_players_territories[0]).unwrap();
+            found_terr.num_dice += 1;
+            assigned_dice += 1;
         }
     }
 
