@@ -80,3 +80,32 @@ fn assign_dice_to_territories(territory_map: &mut HashMap<u32, Territory>, num_p
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn new_gameboard() {
+        let num_players: u32 = 2;
+        let num_territories_per_player: u32 = 2;
+        let num_dice_per_player: u32 = 10;
+
+        let sut_gameboard: crate::gameboard::Gameboard = Gameboard::new(num_players, num_territories_per_player, num_dice_per_player);
+
+        for curr_player in 0..2 {
+            let mut sum_dice: u32 = 0;
+            let mut sum_terr: u32 = 0;
+
+            for cur_terr in sut_gameboard.territory_map.values() {
+                if cur_terr.owner_id == curr_player {
+                    sum_dice += cur_terr.num_dice;
+                    sum_terr += 1;
+                }
+            }
+            
+            assert_eq!(num_territories_per_player, sum_terr);
+            assert_eq!(num_dice_per_player, sum_dice);
+        }
+    }
+}

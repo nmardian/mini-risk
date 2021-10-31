@@ -15,7 +15,5 @@ fn main() {
     let num_territories_per_player: u32 = args[2].parse().expect("num player territories per player must be a positive integer");
     let num_dice_per_player: u32 = args[3].parse().expect("num dice per player must be a positive integer");
 
-    //let all_territories: HashMap<u32, Territory> = generate_gameboard(num_players, num_territories_per_player, num_dice_per_player);
-    let gameboard: Gameboard = Gameboard::new(num_players, num_territories_per_player, num_dice_per_player);
-    
+    let gameboard: Gameboard = Gameboard::new(num_players, num_territories_per_player, num_dice_per_player);    
 }
