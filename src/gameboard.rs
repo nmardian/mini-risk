@@ -3,16 +3,17 @@ use rand::thread_rng;
 use rand::Rng;
 use std::collections::HashMap;
 
-#[derive(Debug)]
-struct Territory {
-    id: u32,
+#[derive(Debug, Clone)]
+pub struct Territory {
+    pub id: u32,
     num_dice: u32,
     owner_id: u32,
     neighbors: Vec<u32>,
 }
 
+#[derive(Clone)]
 pub struct Gameboard {
-    territory_map: HashMap<u32, Territory>,
+    pub territory_map: HashMap<u32, Territory>,
 }
 
 impl Gameboard {
@@ -122,12 +123,12 @@ fn connect_territories(territory_map: &mut HashMap<u32, Territory>) {
             other_terr_id = rand::thread_rng().gen_range(min..=max);
         }
 
-        let mut this_terr: &mut Territory = territory_map.get_mut(&curr_terr_id).unwrap();
+        let this_terr: &mut Territory = territory_map.get_mut(&curr_terr_id).unwrap();
         if !this_terr.neighbors.contains(&other_terr_id) {
             this_terr.neighbors.push(other_terr_id);
         }
 
-        let mut other_terr: &mut Territory = territory_map.get_mut(&other_terr_id).unwrap();
+        let other_terr: &mut Territory = territory_map.get_mut(&other_terr_id).unwrap();
         if !other_terr.neighbors.contains(&curr_terr_id){
             other_terr.neighbors.push(curr_terr_id);
         }
