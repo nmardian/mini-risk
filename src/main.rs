@@ -28,4 +28,7 @@ fn main() {
 
     let gameboard: Gameboard =
         Gameboard::new(num_players, num_territories_per_player, num_dice_per_player);
+
+    let gameboard_json = serde_json::to_string_pretty(&gameboard).unwrap();
+    println!("{}", gameboard_json);
 }

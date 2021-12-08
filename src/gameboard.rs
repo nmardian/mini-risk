@@ -2,9 +2,9 @@ use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
 use std::collections::HashMap;
-use serde_json::json;
+use serde::Serialize;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Territory {
     pub id: u32,
     pub num_dice: u32,
@@ -12,7 +12,7 @@ pub struct Territory {
     pub neighbors: Vec<u32>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct Gameboard {
     pub territory_map: HashMap<u32, Territory>,
 }
@@ -48,17 +48,6 @@ impl Gameboard {
         );
 
         connect_territories(&mut territory_map);
-
-        for cur_terr in territory_map.values() {
-            let terr_json = json!({
-                "id": cur_terr.id,
-                "num_dice": cur_terr.num_dice,
-                "owner_id": cur_terr.owner_id,
-                "neighbors": cur_terr.neighbors
-            });
-
-            println!("{}", terr_json);
-        }
 
         Gameboard {
             territory_map: territory_map,
