@@ -1,5 +1,4 @@
-use core::num;
-use std::env::{self, consts};
+use std::env::{self};
 
 mod gameboard;
 use crate::gameboard::Gameboard;
