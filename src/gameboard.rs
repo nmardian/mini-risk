@@ -1,8 +1,9 @@
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
-use std::collections::HashMap;
 use serde::Serialize;
+use std::collections::HashMap;
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Territory {
@@ -48,6 +49,11 @@ impl Gameboard {
         );
 
         connect_territories(&mut territory_map);
+
+        while !is_connected(&territory_map) {
+            clear_neighbors(&mut territory_map);
+            connect_territories(&mut territory_map);
+        }
 
         Gameboard {
             territory_map: territory_map,
@@ -105,7 +111,6 @@ fn assign_dice_to_territories(
 }
 
 fn connect_territories(territory_map: &mut HashMap<u32, Territory>) {
-    
     let mut all_terr_ids: Vec<u32> = Vec::new();
     for cur_terr_id in territory_map.keys() {
         all_terr_ids.push(*cur_terr_id);
@@ -128,12 +133,64 @@ fn connect_territories(territory_map: &mut HashMap<u32, Territory>) {
         }
 
         let other_terr: &mut Territory = territory_map.get_mut(&other_terr_id).unwrap();
-        if !other_terr.neighbors.contains(&curr_terr_id){
+        if !other_terr.neighbors.contains(&curr_terr_id) {
             other_terr.neighbors.push(curr_terr_id);
         }
     }
-
 }
+
+fn clear_neighbors(territory_map: &mut HashMap<u32, Territory>) {
+    let mut all_terr_ids: Vec<u32> = Vec::new();
+
+    for curr_id in territory_map.keys() {
+        all_terr_ids.push(*curr_id);
+    }
+
+    for curr_id in all_terr_ids {
+        let this_terr: &mut Territory = territory_map.get_mut(&curr_id).unwrap();
+        this_terr.neighbors.clear();
+    }
+}
+
+fn is_connected(territory_map: &HashMap<u32, Territory>) -> bool {
+    let mut visited: HashMap<u32, bool> = HashMap::new();
+
+    for cur_terr in territory_map.values() {
+        visited.insert(cur_terr.id, false);
+    }
+
+    let mut comp_num = 0;
+
+    for cur_terr in territory_map.values() {
+        let cur_terr_id: u32 = cur_terr.id;
+        if !visited[&cur_terr.id] {
+            comp_num += 1;
+
+            let mut queue: VecDeque<u32> = VecDeque::new();
+            queue.push_back(cur_terr_id);
+            visited.insert(cur_terr_id, true);
+
+            while queue.len() > 0 {
+                let w: u32 = queue.pop_front().unwrap();
+
+                if territory_map.contains_key(&(w as u32)) {
+                    let cur_territory = &territory_map[&(w as u32)];
+
+                    for cur_neighbor in &cur_territory.neighbors {
+                        if !visited[cur_neighbor] {
+                            visited.insert(*cur_neighbor, true);
+                            queue.push_back(*cur_neighbor);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return comp_num == 1;
+}
+
+// TODO: Verify all edges are two-way
 
 #[cfg(test)]
 mod tests {
@@ -162,5 +219,159 @@ mod tests {
             assert_eq!(num_territories_per_player, sum_terr);
             assert_eq!(num_dice_per_player, sum_dice);
         }
+    }
+
+    #[test]
+    fn is_connected_one_node() {
+        let terr_one = Territory {
+            id: 1,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: Vec::new(),
+        };
+
+        let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+        territory_map.insert(1, terr_one);
+
+        assert_eq!(true, is_connected(&territory_map));
+    }
+
+    #[test]
+    fn is_connected_two_nodes() {
+        let terr_one = Territory {
+            id: 1,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: vec![2],
+        };
+
+        let terr_two = Territory {
+            id: 2,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: vec![1],
+        };
+
+        let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+        territory_map.insert(1, terr_one);
+        territory_map.insert(2, terr_two);
+
+        assert_eq!(true, is_connected(&territory_map));
+    }
+
+    #[test]
+    fn is_connected_two_nodes_not_connected() {
+        let terr_one = Territory {
+            id: 1,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: Vec::new(),
+        };
+
+        let terr_two = Territory {
+            id: 2,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: Vec::new(),
+        };
+
+        let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+        territory_map.insert(1, terr_one);
+        territory_map.insert(2, terr_two);
+
+        assert_eq!(false, is_connected(&territory_map));
+    }
+
+    #[test]
+    fn is_connected_three_nodes_none_connected() {
+        let terr_one = Territory {
+            id: 1,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: Vec::new(),
+        };
+
+        let terr_two = Territory {
+            id: 2,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: Vec::new(),
+        };
+
+        let terr_three = Territory {
+            id: 3,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: Vec::new(),
+        };
+
+        let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+        territory_map.insert(1, terr_one);
+        territory_map.insert(2, terr_two);
+        territory_map.insert(3, terr_three);
+
+        assert_eq!(false, is_connected(&territory_map));
+    }
+
+    #[test]
+    fn is_connected_three_nodes_one_island() {
+        let terr_one = Territory {
+            id: 1,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: vec![2],
+        };
+
+        let terr_two = Territory {
+            id: 2,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: vec![1],
+        };
+
+        let terr_three = Territory {
+            id: 3,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: Vec::new(),
+        };
+
+        let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+        territory_map.insert(1, terr_one);
+        territory_map.insert(2, terr_two);
+        territory_map.insert(3, terr_three);
+
+        assert_eq!(false, is_connected(&territory_map));
+    }
+
+    #[test]
+    fn is_connected_three_nodes() {
+        let terr_one = Territory {
+            id: 1,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: vec![2, 3],
+        };
+
+        let terr_two = Territory {
+            id: 2,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: vec![1, 3],
+        };
+
+        let terr_three = Territory {
+            id: 3,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: vec![1, 2],
+        };
+
+        let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+        territory_map.insert(1, terr_one);
+        territory_map.insert(2, terr_two);
+        territory_map.insert(3, terr_three);
+
+        assert_eq!(true, is_connected(&territory_map));
     }
 }

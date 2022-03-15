@@ -3,7 +3,6 @@ use std::env::{self};
 mod gameboard;
 use crate::gameboard::Gameboard;
 
-
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -21,7 +20,7 @@ fn main() {
         .parse()
         .expect("num dice per player must be a positive integer");
 
-    if num_dice_per_player < num_territories_per_player{
+    if num_dice_per_player < num_territories_per_player {
         panic!("The number of dice per player must be greater than or equal to the number of territories 
                 per player");
     }
