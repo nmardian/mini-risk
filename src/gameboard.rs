@@ -13,7 +13,7 @@ pub struct Territory {
     pub neighbors: Vec<u32>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Gameboard {
     pub territory_map: HashMap<u32, Territory>,
 }
@@ -50,7 +50,7 @@ impl Gameboard {
 
         connect_territories(&mut territory_map);
 
-        while !is_connected(&territory_map) {
+        while !is_connected(&territory_map) || !verify_neighbors(&territory_map) {
             clear_neighbors(&mut territory_map);
             connect_territories(&mut territory_map);
         }
@@ -190,7 +190,26 @@ fn is_connected(territory_map: &HashMap<u32, Territory>) -> bool {
     return comp_num == 1;
 }
 
-// TODO: Verify all edges are two-way
+fn verify_neighbors(territory_map: &HashMap<u32, Territory>) -> bool {
+
+    let mut result: bool = true;
+
+    for cur_terr in territory_map.values() {
+        for cur_neighbor in &cur_terr.neighbors {
+            if territory_map.contains_key(cur_neighbor) {
+                
+                let temp_neighbor: &Territory = territory_map.get(cur_neighbor).unwrap();
+
+                if !temp_neighbor.neighbors.contains(&cur_terr.id) {
+                    
+                    result = false;
+                    break;
+                }
+            }
+        }
+    }
+    return result;
+}
 
 #[cfg(test)]
 mod tests {
@@ -401,4 +420,127 @@ mod tests {
             assert_eq!(0, cur_terr.neighbors.len());
         }
     }
+}
+
+#[test]
+fn verify_neighbors_one_terr() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: Vec::new(),
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+
+    assert_eq!(true, verify_neighbors(&territory_map));
+}
+
+#[test]
+fn verify_neighbors_two_terrs_good() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let terr_two = Territory {
+        id: 2,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![1],
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+    territory_map.insert(2, terr_two);
+
+    assert_eq!(true, verify_neighbors(&territory_map));
+}
+
+#[test]
+fn verify_neighbors_two_terrs_bad() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let terr_two = Territory {
+        id: 2,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: Vec::new(),
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+    territory_map.insert(2, terr_two);
+
+    assert_eq!(false, verify_neighbors(&territory_map));
+}
+
+#[test]
+fn verify_neighbors_three_terrs_good() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let terr_two = Territory {
+        id: 2,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![1, 3],
+    };
+
+    let terr_three = Territory {
+        id: 3,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+    territory_map.insert(2, terr_two);
+    territory_map.insert(3, terr_three);
+
+    assert_eq!(true, verify_neighbors(&territory_map));
+}
+
+#[test]
+fn verify_neighbors_three_terrs_bad() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let terr_two = Territory {
+        id: 2,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![1, 3],
+    };
+
+    let terr_three = Territory {
+        id: 3,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![1, 2],
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+    territory_map.insert(2, terr_two);
+    territory_map.insert(3, terr_three);
+
+    assert_eq!(false, verify_neighbors(&territory_map));
 }

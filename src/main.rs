@@ -30,4 +30,6 @@ fn main() {
 
     let gameboard_json = serde_json::to_string_pretty(&gameboard).unwrap();
     println!("{}", gameboard_json);
+
+    //print!("{:#?}", gameboard);
 }
