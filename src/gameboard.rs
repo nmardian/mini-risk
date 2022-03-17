@@ -161,14 +161,13 @@ fn is_connected(territory_map: &HashMap<u32, Territory>) -> bool {
 
     let mut comp_num = 0;
 
-    for cur_terr in territory_map.values() {
-        let cur_terr_id: u32 = cur_terr.id;
-        if !visited[&cur_terr.id] {
+    for cur_terr_id in territory_map.keys() {
+        if !visited[cur_terr_id] {
             comp_num += 1;
 
             let mut queue: VecDeque<u32> = VecDeque::new();
-            queue.push_back(cur_terr_id);
-            visited.insert(cur_terr_id, true);
+            queue.push_back(*cur_terr_id);
+            visited.insert(*cur_terr_id, true);
 
             while queue.len() > 0 {
                 let w: u32 = queue.pop_front().unwrap();
@@ -191,17 +190,14 @@ fn is_connected(territory_map: &HashMap<u32, Territory>) -> bool {
 }
 
 fn verify_neighbors(territory_map: &HashMap<u32, Territory>) -> bool {
-
     let mut result: bool = true;
 
     for cur_terr in territory_map.values() {
         for cur_neighbor in &cur_terr.neighbors {
             if territory_map.contains_key(cur_neighbor) {
-                
                 let temp_neighbor: &Territory = territory_map.get(cur_neighbor).unwrap();
 
                 if !temp_neighbor.neighbors.contains(&cur_terr.id) {
-                    
                     result = false;
                     break;
                 }
