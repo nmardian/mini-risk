@@ -374,4 +374,31 @@ mod tests {
 
         assert_eq!(true, is_connected(&territory_map));
     }
+
+    #[test]
+    fn test_clear_neighbors() {
+        let terr_one = Territory {
+            id: 1,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: vec![2, 3],
+        };
+
+        let terr_two = Territory {
+            id: 2,
+            num_dice: 1,
+            owner_id: 0,
+            neighbors: vec![1, 3],
+        };
+
+        let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+        territory_map.insert(1, terr_one);
+        territory_map.insert(2, terr_two);
+
+        clear_neighbors(&mut territory_map);
+
+        for cur_terr in territory_map.values() {
+            assert_eq!(0, cur_terr.neighbors.len());
+        }
+    }
 }
