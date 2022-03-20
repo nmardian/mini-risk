@@ -9,3 +9,4 @@ edition = "2018"
 rand = "0.8.4"
 serde_json = "1.0.72"
 serde = { version = "1.0.72", features = ["derive"] }
+message-io = "0.14"

@@ -3,12 +3,11 @@ import pygame
 import math
 import dataclasses
 import json
+import socket
+import sys
 
-def parseGameboard():
-    gameboard_file =  open('gameboard.json')
-
-    territory_map = json.load(gameboard_file)
-    print(territory_map)
+def parseGameboard(json_str):
+    territory_map = json.loads(json_str)
     
     territory_list = []
     for id in territory_map['territory_map']:
@@ -34,7 +33,22 @@ screen = pygame.display.set_mode([window_width, window_height])
 
 font = pygame.font.SysFont(None, 16)
 
-territory_list = parseGameboard()
+socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+socket.connect(("localhost", 1234))
+msg = 'Connect'.encode('utf-8')
+print('sending {0}'.format(msg))
+
+try:
+    num_sent = socket.send(msg)
+    print("Sent: ", num_sent)
+except BaseException as err:
+    print("Error sending: {0}".format(err))
+
+raw_gameboard = socket.recv(2048)
+json_gameboard = raw_gameboard.decode("utf-8")
+territory_list = parseGameboard(json_gameboard)
+
+socket.close()
 
 running = True
 while running:

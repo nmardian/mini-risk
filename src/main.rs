@@ -1,4 +1,6 @@
 use std::env::{self};
+use message_io::node::{self};
+use message_io::network::{NetEvent, Transport};
 
 mod gameboard;
 use crate::gameboard::Gameboard;
@@ -30,6 +32,18 @@ fn main() {
 
     let gameboard_json = serde_json::to_string_pretty(&gameboard).unwrap();
     println!("{}", gameboard_json);
-
     //print!("{:#?}", gameboard);
+
+    let (handler, listener) = node::split::<()>();
+    handler.network().listen(Transport::Tcp, "0.0.0.0:1234").unwrap();
+
+    listener.for_each(move |event| match event.network() {
+        NetEvent::Connected(_,_) => unreachable!(), 
+        NetEvent::Accepted(_endpoint, _listener) => println!("Client connected"),
+        NetEvent::Message(endpoint, data) => {
+            println!("Received: {:?}", String::from_utf8(data.to_vec()));
+            handler.network().send(endpoint, gameboard_json.as_bytes());
+        },
+        NetEvent::Disconnected(_endpoint) => println!("Client disconnected"),
+    });
 }
