@@ -1,3 +1,4 @@
+from asyncio.windows_events import NULL
 from typing import List
 import pygame
 import math
@@ -48,17 +49,32 @@ def draw_gameboard(territory_list):
         for cur_neighbor in cur_terr.neighbors:
             pygame.draw.line(screen, (255, 0, 0), coord_map[cur_terr.id], coord_map[cur_neighbor])
 
+
+    if game_state.attack_from >= 0 and game_state.attack_to >= 0:
+        pygame.draw.line(screen, (0, 255, 0), coord_map[game_state.attack_from], coord_map[game_state.attack_to])
+
     pygame.display.flip()
 
     return rect_map
 
-def handle_click(rect_map):
+def handle_click(game_state, rect_map):
     (x_pos, y_pos) = pygame.mouse.get_pos()
     print('mouse clicked ', x_pos, y_pos)
 
     for cur_terr in rect_map:
         if rect_map[cur_terr].collidepoint(x_pos, y_pos):
-            print('Inside territory ', cur_terr)
+            handle_attack(game_state, cur_terr)
+            print("Clicked inside territory", cur_terr)
+            
+def handle_attack(game_state, clicked_territory):
+    if game_state.attack_from < 0:
+        game_state.attack_from = clicked_territory
+    elif game_state.attack_from >= 0 and game_state.attack_to < 0:
+        game_state.attack_to = clicked_territory
+    elif game_state.attack_from >= 0 and game_state.attack_to >= 0:
+        game_state.attack_from = clicked_territory
+        game_state.attack_to = -1
+
 
 @dataclasses.dataclass
 class Territory:
@@ -67,6 +83,10 @@ class Territory:
     owner_id: int
     neighbors: List
 
+@dataclasses.dataclass
+class GameState:
+    attack_to: int
+    attack_from: int
 
 pygame.init()
 
@@ -91,7 +111,7 @@ raw_gameboard = socket.recv(2048)
 json_gameboard = raw_gameboard.decode("utf-8")
 territory_list = parseGameboard(json_gameboard)
 
-socket.close()
+game_state = GameState(-1, -1)
 
 running = True
 while running:
@@ -102,8 +122,8 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONUP:
-            handle_click(rect_map)
+            handle_click(game_state, rect_map)
 
     
-
+socket.close()
 pygame.quit()
