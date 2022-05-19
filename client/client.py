@@ -7,6 +7,9 @@ import json
 import socket
 import sys
 
+BLACK = (0, 0, 0)
+RED = (235, 72, 55)
+
 def parseGameboard(json_str):
     territory_map = json.loads(json_str)
     
@@ -50,8 +53,17 @@ def draw_gameboard(territory_list):
             pygame.draw.line(screen, (255, 0, 0), coord_map[cur_terr.id], coord_map[cur_neighbor])
 
 
+    global BLACK
+    attack_button_color = BLACK
     if game_state.attack_from >= 0 and game_state.attack_to >= 0:
         pygame.draw.line(screen, (0, 255, 0), coord_map[game_state.attack_from], coord_map[game_state.attack_to])
+        global RED
+        attack_button_color = RED
+
+    global attack_rect
+    attack_rect = pygame.draw.circle(screen, attack_button_color, (51, 51), 50)
+    attack_text_img = font.render("Attack", True, (255, 255, 255), (0,0,0))
+    screen.blit(attack_text_img, (46, 41))
 
     pygame.display.flip()
 
@@ -65,7 +77,11 @@ def handle_click(game_state, rect_map):
         if rect_map[cur_terr].collidepoint(x_pos, y_pos):
             handle_attack(game_state, cur_terr)
             print("Clicked inside territory", cur_terr)
-            
+
+    global attack_rect
+    if attack_rect.collidepoint(x_pos, y_pos):
+            print("Clicked \"Attack\"")
+
 def handle_attack(game_state, clicked_territory):
     if game_state.attack_from < 0:
         game_state.attack_from = clicked_territory
@@ -112,6 +128,8 @@ json_gameboard = raw_gameboard.decode("utf-8")
 territory_list = parseGameboard(json_gameboard)
 
 game_state = GameState(-1, -1)
+
+attack_rect = NULL
 
 running = True
 while running:
