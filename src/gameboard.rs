@@ -207,6 +207,45 @@ fn verify_neighbors(territory_map: &HashMap<u32, Territory>) -> bool {
     return result;
 }
 
+fn can_attack(
+    territory_map: &HashMap<u32, Territory>,
+    attack_from: u32,
+    attack_to: u32,
+) -> bool {
+    let mut result: bool = false;
+    if territory_map.contains_key(&attack_from) && territory_map.contains_key(&attack_to) {
+        let attacker: &Territory = territory_map.get(&attack_from).unwrap();
+        let attacked: &Territory = territory_map.get(&attack_to).unwrap();
+
+        if attacker.neighbors.contains(&attacked.id)
+            && attacker.owner_id != attacker.owner_id
+            && attacker.num_dice > 1
+        {
+            result = true;
+        }
+    }
+
+    return result;
+}
+
+/*
+fn attack(territory_map: &mut HashMap<u32, Territory>, attack_from: u32, attack_to: u32) -> bool {
+    let mut result: bool = false;
+    if territory_map.contains_key(&attack_from) && territory_map.contains_key(&attack_to) {
+        let attacker: &Territory = territory_map.get(&attack_from).unwrap();
+        let attacked: &Territory = territory_map.get(&attack_to).unwrap();
+
+        // maybe don't need this as mutable
+        // let attacker: &mut Territory = territory_map.get_mut(&attack_from).unwrap();
+        // let attacked: &mut Territory = territory_map.get_mut(&attack_to).unwrap();
+
+        if attacker.neighbors.contains(&attacked.id) && attacker.owner_id != attacker.owner_id {}
+    }
+
+    return result;
+}
+*/
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -539,4 +578,119 @@ fn verify_neighbors_three_terrs_bad() {
     territory_map.insert(3, terr_three);
 
     assert_eq!(false, verify_neighbors(&territory_map));
+}
+
+#[test]
+fn can_attack_no_attack_from() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 2,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let terr_two = Territory {
+        id: 2,
+        num_dice: 2,
+        owner_id: 0,
+        neighbors: vec![1],
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+    territory_map.insert(2, terr_two);
+
+    assert_eq!(false, can_attack(&territory_map, 3, 1));
+}
+
+#[test]
+fn can_attack_no_attack_to() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 2,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let terr_two = Territory {
+        id: 2,
+        num_dice: 2,
+        owner_id: 0,
+        neighbors: vec![1],
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+    territory_map.insert(2, terr_two);
+
+    assert_eq!(false, can_attack(&territory_map, 1, 2));
+}
+
+#[test]
+fn can_attack_same_owner() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 2,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let terr_two = Territory {
+        id: 2,
+        num_dice: 2,
+        owner_id: 0,
+        neighbors: vec![1],
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+    territory_map.insert(2, terr_two);
+
+    assert_eq!(false, can_attack(&territory_map, 1, 2));
+}
+
+#[test]
+fn can_attack_not_enough_dice() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 1,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let terr_two = Territory {
+        id: 2,
+        num_dice: 2,
+        owner_id: 0,
+        neighbors: vec![1],
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+    territory_map.insert(2, terr_two);
+
+    assert_eq!(false, can_attack(&territory_map, 1, 2));
+}
+
+#[test]
+fn can_attack_good() {
+    let terr_one = Territory {
+        id: 1,
+        num_dice: 2,
+        owner_id: 0,
+        neighbors: vec![2],
+    };
+
+    let terr_two = Territory {
+        id: 2,
+        num_dice: 2,
+        owner_id: 0,
+        neighbors: vec![1],
+    };
+
+    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
+    territory_map.insert(1, terr_one);
+    territory_map.insert(2, terr_two);
+
+    assert_eq!(false, can_attack(&territory_map, 1, 2));
 }

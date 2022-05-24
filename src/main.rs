@@ -1,6 +1,6 @@
-use std::env::{self};
-use message_io::node::{self};
 use message_io::network::{NetEvent, Transport};
+use message_io::node::{self};
+use std::env::{self};
 
 mod gameboard;
 use crate::gameboard::Gameboard;
@@ -35,15 +35,34 @@ fn main() {
     //print!("{:#?}", gameboard);
 
     let (handler, listener) = node::split::<()>();
-    handler.network().listen(Transport::Tcp, "0.0.0.0:1234").unwrap();
+    handler
+        .network()
+        .listen(Transport::Tcp, "0.0.0.0:1234")
+        .unwrap();
 
     listener.for_each(move |event| match event.network() {
-        NetEvent::Connected(_,_) => unreachable!(), 
+        NetEvent::Connected(_, _) => unreachable!(),
         NetEvent::Accepted(_endpoint, _listener) => println!("Client connected"),
         NetEvent::Message(endpoint, data) => {
+            let incoming_message: String = String::from_utf8(data.to_vec()).unwrap();
             println!("Received: {:?}", String::from_utf8(data.to_vec()));
-            handler.network().send(endpoint, gameboard_json.as_bytes());
-        },
+            let split_message: Vec<&str> = incoming_message.split(":").collect();
+
+            match split_message[0] {
+                "Connect" => {
+                    println!("Got a Connect message");
+                    handler.network().send(endpoint, gameboard_json.as_bytes());
+                }
+                "Attack" => {
+                    println!("Got an Attack message");
+                    if split_message.len() >= 3 {
+                    } else {
+                        println!("Malformed Attack message");
+                    }
+                }
+                _ => println!("Got an unknown message"),
+            }
+        }
         NetEvent::Disconnected(_endpoint) => println!("Client disconnected"),
     });
 }
