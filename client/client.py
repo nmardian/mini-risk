@@ -75,14 +75,15 @@ def handle_click(game_state, rect_map):
 
     for cur_terr in rect_map:
         if rect_map[cur_terr].collidepoint(x_pos, y_pos):
-            handle_attack(game_state, cur_terr)
+            handle_territory_selected(game_state, cur_terr)
             print("Clicked inside territory", cur_terr)
 
     global attack_rect
     if attack_rect.collidepoint(x_pos, y_pos):
             print("Clicked \"Attack\"")
+            handle_attack(game_state)
 
-def handle_attack(game_state, clicked_territory):
+def handle_territory_selected(game_state, clicked_territory):
     if game_state.attack_from < 0:
         game_state.attack_from = clicked_territory
     elif game_state.attack_from >= 0 and game_state.attack_to < 0:
@@ -90,6 +91,20 @@ def handle_attack(game_state, clicked_territory):
     elif game_state.attack_from >= 0 and game_state.attack_to >= 0:
         game_state.attack_from = clicked_territory
         game_state.attack_to = -1
+
+def handle_attack(game_state):
+    if game_state.attack_from >= 0 and game_state.attack_to >= 0:
+        send_message('Attack:' + str(game_state.attack_from) + ':' + str(game_state.attack_to))
+
+
+def send_message(message):
+    global socket
+    try:
+        print('sending {0}'.format(message))
+        num_sent = socket.send(message.encode('utf-8'))
+        print("Sent: ", num_sent)
+    except BaseException as err:
+        print("Error sending: {0}".format(err))
 
 
 @dataclasses.dataclass
@@ -114,14 +129,8 @@ font = pygame.font.SysFont(None, 16)
 
 socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 socket.connect(("localhost", 1234))
-msg = 'Connect'.encode('utf-8')
-print('sending {0}'.format(msg))
 
-try:
-    num_sent = socket.send(msg)
-    print("Sent: ", num_sent)
-except BaseException as err:
-    print("Error sending: {0}".format(err))
+send_message('Connect')
 
 raw_gameboard = socket.recv(2048)
 json_gameboard = raw_gameboard.decode("utf-8")
