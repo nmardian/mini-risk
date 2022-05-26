@@ -59,6 +59,52 @@ impl Gameboard {
             territory_map: territory_map,
         }
     }
+
+    pub fn can_attack(&self, attack_from: u32, attack_to: u32) -> bool {
+        let mut result: bool = false;
+        if self.territory_map.contains_key(&attack_from)
+            && self.territory_map.contains_key(&attack_to)
+        {
+            let attacker: &Territory = self.territory_map.get(&attack_from).unwrap();
+            let attacked: &Territory = self.territory_map.get(&attack_to).unwrap();
+
+            if attacker.neighbors.contains(&attacked.id)
+                && attacker.owner_id != attacker.owner_id
+                && attacker.num_dice > 1
+            {
+                result = true;
+            }
+        }
+
+        return result;
+    }
+
+    pub fn attack(&mut self, attack_from: u32, attack_to: u32) {
+        let attacker: &Territory = self.territory_map.get(&attack_from).unwrap();
+        let defender: &Territory = self.territory_map.get(&attack_to).unwrap();
+
+        let attack_dice: u32 = attacker.num_dice - 1;
+        let attacker_owner: u32 = attacker.owner_id;
+
+        if battle(attacker.num_dice, defender.num_dice) {
+            {
+                let mut attacker: &mut Territory =
+                    self.territory_map.get_mut(&attack_from).unwrap();
+                attacker.num_dice = 1;
+            }
+            {
+                let mut defender: &mut Territory = self.territory_map.get_mut(&attack_to).unwrap();
+                defender.num_dice += attack_dice;
+                defender.owner_id = attacker_owner;
+            }
+        } else {
+            {
+                let mut attacker: &mut Territory =
+                    self.territory_map.get_mut(&attack_from).unwrap();
+                attacker.num_dice = 1;
+            }
+        }
+    }
 }
 
 fn assign_territories_to_players(
@@ -207,44 +253,22 @@ fn verify_neighbors(territory_map: &HashMap<u32, Territory>) -> bool {
     return result;
 }
 
-fn can_attack(
-    territory_map: &HashMap<u32, Territory>,
-    attack_from: u32,
-    attack_to: u32,
-) -> bool {
-    let mut result: bool = false;
-    if territory_map.contains_key(&attack_from) && territory_map.contains_key(&attack_to) {
-        let attacker: &Territory = territory_map.get(&attack_from).unwrap();
-        let attacked: &Territory = territory_map.get(&attack_to).unwrap();
+fn battle(num_dice_attacker: u32, num_dice_defender: u32) -> bool {
+    let mut attacker_sum: u32 = 0;
+    let mut attacked_sum: u32 = 0;
 
-        if attacker.neighbors.contains(&attacked.id)
-            && attacker.owner_id != attacker.owner_id
-            && attacker.num_dice > 1
-        {
-            result = true;
-        }
+    let mut die_roll = rand::thread_rng();
+
+    for _cur_dice in 0..(num_dice_attacker - 1) {
+        attacker_sum += die_roll.gen_range(1..7);
     }
 
-    return result;
-}
-
-/*
-fn attack(territory_map: &mut HashMap<u32, Territory>, attack_from: u32, attack_to: u32) -> bool {
-    let mut result: bool = false;
-    if territory_map.contains_key(&attack_from) && territory_map.contains_key(&attack_to) {
-        let attacker: &Territory = territory_map.get(&attack_from).unwrap();
-        let attacked: &Territory = territory_map.get(&attack_to).unwrap();
-
-        // maybe don't need this as mutable
-        // let attacker: &mut Territory = territory_map.get_mut(&attack_from).unwrap();
-        // let attacked: &mut Territory = territory_map.get_mut(&attack_to).unwrap();
-
-        if attacker.neighbors.contains(&attacked.id) && attacker.owner_id != attacker.owner_id {}
+    for _cur_dice in 0..(num_dice_defender - 1) {
+        attacked_sum += die_roll.gen_range(1..7);
     }
 
-    return result;
+    return attacker_sum > attacked_sum;
 }
-*/
 
 #[cfg(test)]
 mod tests {
@@ -578,119 +602,4 @@ fn verify_neighbors_three_terrs_bad() {
     territory_map.insert(3, terr_three);
 
     assert_eq!(false, verify_neighbors(&territory_map));
-}
-
-#[test]
-fn can_attack_no_attack_from() {
-    let terr_one = Territory {
-        id: 1,
-        num_dice: 2,
-        owner_id: 0,
-        neighbors: vec![2],
-    };
-
-    let terr_two = Territory {
-        id: 2,
-        num_dice: 2,
-        owner_id: 0,
-        neighbors: vec![1],
-    };
-
-    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
-    territory_map.insert(1, terr_one);
-    territory_map.insert(2, terr_two);
-
-    assert_eq!(false, can_attack(&territory_map, 3, 1));
-}
-
-#[test]
-fn can_attack_no_attack_to() {
-    let terr_one = Territory {
-        id: 1,
-        num_dice: 2,
-        owner_id: 0,
-        neighbors: vec![2],
-    };
-
-    let terr_two = Territory {
-        id: 2,
-        num_dice: 2,
-        owner_id: 0,
-        neighbors: vec![1],
-    };
-
-    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
-    territory_map.insert(1, terr_one);
-    territory_map.insert(2, terr_two);
-
-    assert_eq!(false, can_attack(&territory_map, 1, 2));
-}
-
-#[test]
-fn can_attack_same_owner() {
-    let terr_one = Territory {
-        id: 1,
-        num_dice: 2,
-        owner_id: 0,
-        neighbors: vec![2],
-    };
-
-    let terr_two = Territory {
-        id: 2,
-        num_dice: 2,
-        owner_id: 0,
-        neighbors: vec![1],
-    };
-
-    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
-    territory_map.insert(1, terr_one);
-    territory_map.insert(2, terr_two);
-
-    assert_eq!(false, can_attack(&territory_map, 1, 2));
-}
-
-#[test]
-fn can_attack_not_enough_dice() {
-    let terr_one = Territory {
-        id: 1,
-        num_dice: 1,
-        owner_id: 0,
-        neighbors: vec![2],
-    };
-
-    let terr_two = Territory {
-        id: 2,
-        num_dice: 2,
-        owner_id: 0,
-        neighbors: vec![1],
-    };
-
-    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
-    territory_map.insert(1, terr_one);
-    territory_map.insert(2, terr_two);
-
-    assert_eq!(false, can_attack(&territory_map, 1, 2));
-}
-
-#[test]
-fn can_attack_good() {
-    let terr_one = Territory {
-        id: 1,
-        num_dice: 2,
-        owner_id: 0,
-        neighbors: vec![2],
-    };
-
-    let terr_two = Territory {
-        id: 2,
-        num_dice: 2,
-        owner_id: 0,
-        neighbors: vec![1],
-    };
-
-    let mut territory_map: HashMap<u32, Territory> = HashMap::new();
-    territory_map.insert(1, terr_one);
-    territory_map.insert(2, terr_two);
-
-    assert_eq!(false, can_attack(&territory_map, 1, 2));
 }

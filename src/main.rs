@@ -27,10 +27,10 @@ fn main() {
                 per player");
     }
 
-    let gameboard: Gameboard =
+    let mut gameboard: Gameboard =
         Gameboard::new(num_players, num_territories_per_player, num_dice_per_player);
 
-    let gameboard_json = serde_json::to_string_pretty(&gameboard).unwrap();
+    let mut gameboard_json = serde_json::to_string_pretty(&gameboard).unwrap();
     println!("{}", gameboard_json);
     //print!("{:#?}", gameboard);
 
@@ -56,6 +56,15 @@ fn main() {
                 "Attack" => {
                     println!("Got an Attack message");
                     if split_message.len() >= 3 {
+                        let attack_source: u32 = split_message[1].parse::<u32>().unwrap();
+                        let attack_target: u32 = split_message[2].parse::<u32>().unwrap();
+                        if gameboard.can_attack(attack_source, attack_target) {
+                            gameboard.attack(attack_source, attack_target);
+                            gameboard_json = serde_json::to_string_pretty(&gameboard).unwrap();
+                            handler.network().send(endpoint, gameboard_json.as_bytes());
+                        } else {
+                            // TODO: reply with error
+                        }
                     } else {
                         println!("Malformed Attack message");
                     }
