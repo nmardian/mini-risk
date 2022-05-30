@@ -1,5 +1,5 @@
 from asyncio.windows_events import NULL
-from typing import List
+from typing import Dict, List
 import pygame
 import math
 import dataclasses
@@ -11,21 +11,22 @@ BLACK = (0, 0, 0)
 RED = (235, 72, 55)
 
 def parseGameboard(json_str):
-    territory_map = json.loads(json_str)
+    json_map = json.loads(json_str)
     
-    territory_list = []
-    for id in territory_map['territory_map']:
-        terr_data = territory_map['territory_map'][id]
+    territory_map: Dict[int, Territory] = {}
+    for id_str in json_map['territory_map']:
+        id = int(id_str)
+        terr_data = json_map['territory_map'][id_str]
         curr_territory = Territory(terr_data['id'], terr_data['num_dice'], terr_data['owner_id'], terr_data['neighbors'])
-        territory_list.append(curr_territory)
+        territory_map[id] = curr_territory
 
-    return territory_list
+    return territory_map
 
-def draw_gameboard(territory_list):
+def draw_gameboard(territory_map):
     screen.fill((255, 255, 255))
 
     rotation = 0.0
-    delta_rotation = (2.0 * 3.14159) / len(territory_list)
+    delta_rotation = (2.0 * 3.14159) / len(territory_map)
     radius = 200.0
 
     x_origin = window_width / 2.0
@@ -35,7 +36,7 @@ def draw_gameboard(territory_list):
     coord_map = {}
     rect_map = {}
 
-    for cur_terr in territory_list:
+    for curr_id, cur_terr in territory_map.items():
         x = (radius * math.sin(rotation)) + x_origin
         y = (radius * math.cos(rotation)) + y_origin
 
@@ -53,7 +54,7 @@ def draw_gameboard(territory_list):
 
         rotation += delta_rotation
 
-    for cur_terr in territory_list:
+    for curr_id, cur_terr in territory_map.items():
         for cur_neighbor in cur_terr.neighbors:
             pygame.draw.line(screen, (255, 0, 0), coord_map[cur_terr.id], coord_map[cur_neighbor])
 
@@ -98,7 +99,21 @@ def handle_territory_selected(game_state, clicked_territory):
         game_state.attack_to = -1
 
 def handle_attack(game_state):
-    if game_state.attack_from >= 0 and game_state.attack_to >= 0:
+    can_attack = True
+    
+    if game_state.attack_from < 0 or game_state.attack_to < 0:
+        can_attack = False
+        print("Cannot attack: need to select two territories")
+
+    elif game_state.territory_map[game_state.attack_from].owner_id == game_state.territory_map[game_state.attack_to].owner_id:
+        can_attack = False
+        print("Cannot attack: need to select two territories belonging to two separate players")
+
+    elif game_state.attack_from not in game_state.territory_map[game_state.attack_to].neighbors:
+        can_attack = False
+        print("Cannot attack: need to select two territories adjacent to each other")
+    
+    if can_attack:
         send_message('Attack:' + str(game_state.attack_from) + ':' + str(game_state.attack_to))
 
 
@@ -123,6 +138,7 @@ class Territory:
 class GameState:
     attack_to: int
     attack_from: int
+    territory_map: Dict[int, Territory]
 
 pygame.init()
 
@@ -139,16 +155,16 @@ send_message('Connect')
 
 raw_gameboard = socket.recv(2048)
 json_gameboard = raw_gameboard.decode("utf-8")
-territory_list = parseGameboard(json_gameboard)
+territory_map = parseGameboard(json_gameboard)
 
-game_state = GameState(-1, -1)
+game_state = GameState(-1, -1, territory_map)
 
 attack_rect = NULL
 
 running = True
 while running:
 
-    rect_map = draw_gameboard(territory_list)
+    rect_map = draw_gameboard(territory_map)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
