@@ -38,7 +38,12 @@ def draw_gameboard(territory_list):
     for cur_terr in territory_list:
         x = (radius * math.sin(rotation)) + x_origin
         y = (radius * math.cos(rotation)) + y_origin
-        rect = pygame.draw.circle(screen, (0, 0, 255), (x, y), 50)
+
+        terr_color = (0, 0, 255)
+        if cur_terr.owner_id !=  0:
+            terr_color = (0, 255, 0)
+
+        rect = pygame.draw.circle(screen, terr_color, (x, y), 50)
         
         rect_map[cur_terr.id] = rect
         coord_map[cur_terr.id] = (x,y)
