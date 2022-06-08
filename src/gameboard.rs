@@ -68,11 +68,24 @@ impl Gameboard {
             let attacker: &Territory = self.territory_map.get(&attack_from).unwrap();
             let attacked: &Territory = self.territory_map.get(&attack_to).unwrap();
 
-            if attacker.neighbors.contains(&attacked.id)
-                && attacker.owner_id != attacker.owner_id
-                && attacker.num_dice > 1
-            {
+            if attacker.neighbors.contains(&attacked.id) {
                 result = true;
+            } else {
+                result = false;
+                println!("Cannot attack: Selected territories are not neighbors")
+            }
+
+            if result && attacker.owner_id != attacked.owner_id {
+                result = true;
+            } else {
+                result = false;
+                println!("Cannot attack: Selected territories are owned by the same player")
+            }
+            if result && attacker.num_dice > 1 {
+                result = true;
+            } else {
+                result = false;
+                println!("Cannot attack: Attacking territory has less than 1 die")
             }
         }
 

@@ -30,9 +30,7 @@ fn main() {
     let mut gameboard: Gameboard =
         Gameboard::new(num_players, num_territories_per_player, num_dice_per_player);
 
-    let mut gameboard_json = serde_json::to_string_pretty(&gameboard).unwrap();
-    println!("{}", gameboard_json);
-    //print!("{:#?}", gameboard);
+    print!("{:#?}", gameboard);
 
     let (handler, listener) = node::split::<()>();
     handler
@@ -46,12 +44,14 @@ fn main() {
         NetEvent::Message(endpoint, data) => {
             let incoming_message: String = String::from_utf8(data.to_vec()).unwrap();
             println!("Received: {:?}", String::from_utf8(data.to_vec()));
-            let split_message: Vec<&str> = incoming_message.split(":").collect();
+            let split_message: Vec<&str> = incoming_message.split(";").collect();
 
             match split_message[0] {
                 "Connect" => {
                     println!("Got a Connect message");
-                    handler.network().send(endpoint, gameboard_json.as_bytes());
+                    let gameboard_msg = create_gameboard_message(&gameboard);
+                    println!("Sending: {:?}", gameboard_msg);
+                    handler.network().send(endpoint, gameboard_msg.as_bytes());
                 }
                 "Attack" => {
                     println!("Got an Attack message");
@@ -60,8 +60,9 @@ fn main() {
                         let attack_target: u32 = split_message[2].parse::<u32>().unwrap();
                         if gameboard.can_attack(attack_source, attack_target) {
                             gameboard.attack(attack_source, attack_target);
-                            gameboard_json = serde_json::to_string_pretty(&gameboard).unwrap();
-                            handler.network().send(endpoint, gameboard_json.as_bytes());
+                            let gameboard_msg = create_gameboard_message(&gameboard);
+                            println!("Sending: {:?}", gameboard_msg);
+                            handler.network().send(endpoint, gameboard_msg.as_bytes());
                         } else {
                             // TODO: reply with error
                         }
@@ -74,4 +75,12 @@ fn main() {
         }
         NetEvent::Disconnected(_endpoint) => println!("Client disconnected"),
     });
+}
+
+fn create_gameboard_message(gameboard: &Gameboard) -> String {
+    let gameboard_json = serde_json::to_string_pretty(&gameboard).unwrap();
+    let mut gameboard_msg: String = "Gameboard;".to_owned();
+    gameboard_msg.push_str(&gameboard_json.to_owned());
+
+    return gameboard_msg;
 }

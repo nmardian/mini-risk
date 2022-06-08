@@ -1,11 +1,13 @@
 from asyncio.windows_events import NULL
 from typing import Dict, List
+from xml.etree.ElementTree import QName
 import pygame
 import math
 import dataclasses
 import json
 import socket
 import sys
+import threading
 
 BLACK = (0, 0, 0)
 RED = (235, 72, 55)
@@ -22,7 +24,11 @@ def parseGameboard(json_str):
 
     return territory_map
 
-def draw_gameboard(territory_map):
+def draw_gameboard():
+    global game_state
+
+    territory_map = game_state.territory_map
+
     screen.fill((255, 255, 255))
 
     rotation = 0.0
@@ -52,6 +58,9 @@ def draw_gameboard(territory_map):
         terr_id_text_img = font.render(str(cur_terr.id), True, (0, 0, 0))
         screen.blit(terr_id_text_img, (x, y))
 
+        terr_id_text_img = font.render(str(cur_terr.num_dice), True, (255, 255, 255))
+        screen.blit(terr_id_text_img, (x, y+10))
+
         rotation += delta_rotation
 
     for curr_id, cur_terr in territory_map.items():
@@ -73,23 +82,27 @@ def draw_gameboard(territory_map):
 
     pygame.display.flip()
 
-    return rect_map
+    game_state.rect_map = rect_map
 
-def handle_click(game_state, rect_map):
+def handle_click():
+    global game_state
+
     (x_pos, y_pos) = pygame.mouse.get_pos()
     print('mouse clicked ', x_pos, y_pos)
 
-    for cur_terr in rect_map:
-        if rect_map[cur_terr].collidepoint(x_pos, y_pos):
-            handle_territory_selected(game_state, cur_terr)
+    for cur_terr in game_state.rect_map:
+        if game_state.rect_map[cur_terr].collidepoint(x_pos, y_pos):
+            handle_territory_selected(cur_terr)
             print("Clicked inside territory", cur_terr)
 
     global attack_rect
     if attack_rect.collidepoint(x_pos, y_pos):
             print("Clicked \"Attack\"")
-            handle_attack(game_state)
+            handle_attack()
 
-def handle_territory_selected(game_state, clicked_territory):
+def handle_territory_selected(clicked_territory):
+    global game_state
+
     if game_state.attack_from < 0:
         game_state.attack_from = clicked_territory
     elif game_state.attack_from >= 0 and game_state.attack_to < 0:
@@ -98,8 +111,10 @@ def handle_territory_selected(game_state, clicked_territory):
         game_state.attack_from = clicked_territory
         game_state.attack_to = -1
 
-def handle_attack(game_state):
+def handle_attack():
+    global game_state
     can_attack = True
+    print(game_state.territory_map)
     
     if game_state.attack_from < 0 or game_state.attack_to < 0:
         can_attack = False
@@ -114,7 +129,7 @@ def handle_attack(game_state):
         print("Cannot attack: need to select two territories adjacent to each other")
     
     if can_attack:
-        send_message('Attack:' + str(game_state.attack_from) + ':' + str(game_state.attack_to))
+        send_message('Attack;' + str(game_state.attack_from) + ';' + str(game_state.attack_to))
 
 
 def send_message(message):
@@ -125,6 +140,33 @@ def send_message(message):
         print("Sent: ", num_sent)
     except BaseException as err:
         print("Error sending: {0}".format(err))
+
+def socket_recv():
+    global socket
+    global running
+
+    while running:
+        wait_for_and_process_message()    
+
+def wait_for_and_process_message():
+    print("Recv socket waiting...")
+    message = socket.recv(2048)
+    parse_message(message)
+
+def parse_message(message):
+    global game_state
+
+    decoded_msg = message.decode("utf-8")
+    print(decoded_msg)
+    split_msg = decoded_msg.split(";")
+    
+    if len(split_msg) > 1:
+        match split_msg[0]:
+            case "Gameboard":
+                game_state.territory_map = parseGameboard(split_msg[1])
+                draw_gameboard()
+    
+
 
 
 @dataclasses.dataclass
@@ -139,6 +181,7 @@ class GameState:
     attack_to: int
     attack_from: int
     territory_map: Dict[int, Territory]
+    rect_map: Dict[int, pygame.Rect]
 
 pygame.init()
 
@@ -148,30 +191,35 @@ screen = pygame.display.set_mode([window_width, window_height])
 
 font = pygame.font.SysFont(None, 16)
 
+territory_map = {}
+rect_map = {}
+game_state = GameState(-1, -1, territory_map, rect_map)
+running = True
+
 socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 socket.connect(("localhost", 1234))
 
 send_message('Connect')
+wait_for_and_process_message()
 
-raw_gameboard = socket.recv(2048)
-json_gameboard = raw_gameboard.decode("utf-8")
-territory_map = parseGameboard(json_gameboard)
-
-game_state = GameState(-1, -1, territory_map)
+socket_thread = threading.Thread(target=socket_recv, args=())
+socket_thread.start()
+#raw_gameboard = socket.recv(2048)
+#json_gameboard = raw_gameboard.decode("utf-8")
+#territory_map = parseGameboard(json_gameboard)
 
 attack_rect = NULL
 
-running = True
 while running:
 
-    rect_map = draw_gameboard(territory_map)
+    draw_gameboard()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONUP:
-            handle_click(game_state, rect_map)
+            handle_click()
 
-    
 socket.close()
+socket_thread.join()
 pygame.quit()
